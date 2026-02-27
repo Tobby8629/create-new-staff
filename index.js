@@ -100,7 +100,7 @@ export default async ({ req, res }) => {
     // 5) Send onboarding email (recovery link)
     await account.createRecovery(
       email,
-      `${process.env.WEB_APP_URL}/onboarding/set-password`
+      `${process.env.WEB_APP_URL}/reset-password`
     );
 
     return res.json({ ok: true, authUserId: authUser.$id, staffDocId: staffProfile.$id });
