@@ -12,7 +12,7 @@ export default async ({ req, res }) => {
       email,
       firstName,
       lastName,
-      username,
+      username=firstName,
       employeeId,
       departmentId,
       defaultScheduleId,
@@ -22,7 +22,6 @@ export default async ({ req, res }) => {
     } = body;
 
 
-    console.log(body)
     if (!email || !firstName || !lastName || !username || !employeeId) {
       return res.json({ error: "Missing required fields" }, 400);
     }
@@ -54,7 +53,7 @@ export default async ({ req, res }) => {
       ID.unique(),
       email,
       tempPassword,
-      `${firstName} ${lastName}`
+      `${firstName}`
     );
 
     // // 3) Optional: add admin to admin team
