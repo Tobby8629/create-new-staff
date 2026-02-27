@@ -8,7 +8,6 @@ const randomPassword = (len = 24) => {
 export default async ({ req, res }) => {
   try {
     const body = JSON.parse(req.body || "{}");
-    console.log(req)
     const {
       email,
       firstName,
@@ -22,6 +21,8 @@ export default async ({ req, res }) => {
       role = "staff",
     } = body;
 
+
+    console.log(body)
     if (!email || !firstName || !lastName || !username || !employeeId) {
       return res.json({ error: "Missing required fields" }, 400);
     }
