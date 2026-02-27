@@ -38,7 +38,7 @@ export default async ({ req, res }) => {
     // 1) Ensure employeeId is unique
     const existing = await db.listDocuments(
       process.env.DB_ID,
-      process.env.STAFF_COLLECTION_ID,
+      process.env.COLL_STAFF,
       [Query.equal("employeeId", employeeId)]
     );
 
@@ -70,7 +70,7 @@ export default async ({ req, res }) => {
     // 4) Create staff profile (status onboarding)
     const staffProfile = await db.createDocument(
       process.env.DB_ID,
-      process.env.STAFF_COLLECTION_ID,
+      process.env.COLL_STAFF,
       ID.unique(),
       {
         userId: authUser.$id,
