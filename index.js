@@ -8,7 +8,7 @@ const randomPassword = (len = 24) => {
 export default async ({ req, res }) => {
   try {
     const body = JSON.parse(req.body || "{}");
-
+    console.log(req)
     const {
       email,
       firstName,
