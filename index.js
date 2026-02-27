@@ -77,7 +77,7 @@ export default async ({ req, res }) => {
         email,
         firstName,
         lastName,
-        username,
+        // username,
         employeeId,
         departmentId: departmentId || null,
         role,
