@@ -14,6 +14,7 @@ export default async ({ req, res }) => {
       lastName,
       username=firstName,
       employeeId,
+      unitId,
       departmentId,
       defaultScheduleId,
       defaultShiftId,
@@ -56,16 +57,16 @@ export default async ({ req, res }) => {
       `${firstName}`
     );
 
-    // // 3) Optional: add admin to admin team
-    // if (role === "admin" && process.env.ADMIN_TEAM_ID) {
-    //   // Invite by email is most compatible
-    //   await teams.createMembership(
-    //     process.env.ADMIN_TEAM_ID,
-    //     ["admin"],
-    //     email,
-    //     `${process.env.WEB_APP_URL}/accept-team-invite`
-    //   );
-    // }
+    // 3) Optional: add admin to admin team
+    if (role === "admin" && process.env.ADMIN_TEAM_ID) {
+      // Invite by email is most compatible
+      await teams.createMembership(
+        process.env.ADMIN_TEAM_ID,
+        ["admin"],
+        email,
+        `${process.env.WEB_APP_URL}/accept-team-invite`
+      );
+    }
 
     // 4) Create staff profile (status onboarding)
     const staffProfile = await db.createDocument(
@@ -77,7 +78,7 @@ export default async ({ req, res }) => {
         email,
         firstName,
         lastName,
-        // username,
+        unitId,
         employeeId,
         departmentId: departmentId || null,
         role,
