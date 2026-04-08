@@ -325,10 +325,7 @@ export default async ({ req, res, log, error }) => {
     );
 
     // 7. Send onboarding / password setup email
-    await account.createRecovery({
-      email: normalizedEmail,
-      url: `${WEB_APP_URL}/reset-password`,
-    });
+   await account.createRecovery(normalizedEmail, `${WEB_APP_URL}/reset-password`);
     return res.json(
       {
         ok: true,
