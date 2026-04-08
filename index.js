@@ -273,11 +273,12 @@ export default async ({ req, res, log, error }) => {
 
     // 5. Add user to existing team
     // user may need to accept invite depending on your Appwrite setup
+  // 5. Add existing auth user to existing team
     await teams.createMembership(
       roleId,
       [],
-      normalizedEmail,
-      `${WEB_APP_URL}/accept-team-invite`
+      undefined,
+      authUser.$id
     );
 
     // 6. Create staff profile
