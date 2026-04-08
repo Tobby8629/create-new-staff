@@ -119,6 +119,7 @@ import {
   ID,
   Query,
   Permission,
+  Account,
   Role,
 } from "node-appwrite";
 
@@ -197,6 +198,7 @@ export default async ({ req, res, log, error }) => {
     const users = new Users(client);
     const db = new Databases(client);
     const teams = new Teams(client);
+    const account = new Account(client); 
 
     const DB_ID = process.env.DB_ID;
     const STAFF_COLLECTION_ID = process.env.COLL_STAFF;
