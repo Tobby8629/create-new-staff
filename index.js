@@ -110,7 +110,6 @@
 //   }
 // };
 
-
 import {
   Client,
   Users,
@@ -144,6 +143,7 @@ const normalizeRole = (teamName = "") => teamName.trim().toLowerCase();
 
 export default async ({ req, res, log, error }) => {
   let createdUserId = null;
+  let createdStaffDocId = null;
 
   try {
     const body = parseBody(req.body);
@@ -159,14 +159,13 @@ export default async ({ req, res, log, error }) => {
       defaultScheduleId,
       defaultShiftId,
       scheduleAnchorDate,
-      roleId, // existing team id from frontend
+      roleId, // existing Appwrite teamId
     } = body;
 
     const normalizedEmail = email?.trim().toLowerCase();
     const trimmedFirstName = firstName?.trim();
     const trimmedLastName = lastName?.trim();
     const trimmedEmployeeId = employeeId?.trim();
-
     const safeUsername =
       username?.trim() ||
       `${trimmedFirstName || ""} ${trimmedLastName || ""}`.trim() ||
@@ -214,7 +213,7 @@ export default async ({ req, res, log, error }) => {
       );
     }
 
-    // 1. Ensure employeeId is unique
+    // 1) Ensure employeeId is unique
     const existingEmployee = await db.listDocuments(
       DB_ID,
       STAFF_COLLECTION_ID,
@@ -228,7 +227,7 @@ export default async ({ req, res, log, error }) => {
       );
     }
 
-    // 2. Ensure email is unique in staff collection
+    // 2) Ensure email is unique in staff collection
     const existingEmail = await db.listDocuments(DB_ID, STAFF_COLLECTION_ID, [
       Query.equal("email", normalizedEmail),
     ]);
@@ -240,25 +239,21 @@ export default async ({ req, res, log, error }) => {
       );
     }
 
-    // 3. Get the existing team and derive role from team name
+    // 3) Verify team exists and derive role from team name
     let team;
     try {
       team = await teams.get(roleId);
-    } catch (teamErr) {
+    } catch {
       return res.json(
-        {
-          ok: false,
-          message: "Invalid roleId. Team not found.",
-        },
+        { ok: false, message: "Invalid roleId. Team not found." },
         404
       );
     }
 
-    const teamName = team?.name?.trim() || "Staff";
-    const resolvedRole = normalizeRole(teamName); // e.g. "supervisor"
-    const roleLabel = teamName; // e.g. "Supervisor"
+    const roleLabel = team?.name?.trim() || "Staff";
+    const role = normalizeRole(roleLabel);
 
-    // 4. Create auth user
+    // 4) Create auth user
     const tempPassword = randomPassword();
 
     const authUser = await users.create(
@@ -271,16 +266,15 @@ export default async ({ req, res, log, error }) => {
 
     createdUserId = authUser.$id;
 
-    // 5. Add user to existing team
-    // user may need to accept invite depending on your Appwrite setup
-    await teams.createMembership(
-      roleId,
-      [],
-      normalizedEmail,
-      `${WEB_APP_URL}/accept-team-invite`
-    );
+    // 5) Add the EXISTING user directly to the EXISTING team
+    // Server-side flow: no invite acceptance page needed
+    await teams.createMembership({
+      teamId: roleId,
+      userId: authUser.$id,
+      roles: [],
+    });
 
-    // 6. Create staff profile
+    // 6) Create staff profile
     const staffProfile = await db.createDocument(
       DB_ID,
       STAFF_COLLECTION_ID,
@@ -292,14 +286,11 @@ export default async ({ req, res, log, error }) => {
         lastName: trimmedLastName,
         username: safeUsername,
         employeeId: trimmedEmployeeId,
-
         unitId: unitId || null,
         departmentId: departmentId || null,
-
-        roleId, // existing team id
-        role: resolvedRole, // normalized team name
-        roleLabel, // original team name
-
+        roleId,      // existing team id
+        role,        // e.g. "supervisor"
+        roleLabel,   // e.g. "Supervisor"
         status: "onboarding",
         defaultScheduleId: defaultScheduleId || null,
         defaultShiftId: defaultShiftId || null,
@@ -308,9 +299,7 @@ export default async ({ req, res, log, error }) => {
       [
         Permission.read(Role.user(authUser.$id)),
         Permission.update(Role.user(authUser.$id)),
-
         Permission.read(Role.team(roleId)),
-
         ...(ADMIN_TEAM_ID
           ? [
               Permission.read(Role.team(ADMIN_TEAM_ID)),
@@ -321,7 +310,9 @@ export default async ({ req, res, log, error }) => {
       ]
     );
 
-    // 7. Send onboarding / password setup email
+    createdStaffDocId = staffProfile.$id;
+
+    // 7) Send password setup email
     await users.createRecovery(
       normalizedEmail,
       `${WEB_APP_URL}/reset-password`
@@ -335,14 +326,14 @@ export default async ({ req, res, log, error }) => {
           authUserId: authUser.$id,
           staffDocId: staffProfile.$id,
           roleId,
-          role: resolvedRole,
+          role,
           roleLabel,
         },
       },
       201
     );
   } catch (err) {
-    // rollback auth user if staff doc creation failed after user creation
+    // rollback auth user if later steps fail
     if (createdUserId) {
       try {
         const rollbackClient = new Client()
